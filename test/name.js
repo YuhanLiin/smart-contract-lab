@@ -58,9 +58,13 @@ function change_name(account, name) {
 
 // Generates function containing basic tests for both the unique and non-unique registries
 function generic_registry_tests(contract_type) {    
+    big_string = 'abc'.repeat(128);
+
     return async (accounts) => {
         let account1 = accounts[0];
         let account2 = accounts[1];
+        let account3 = accounts[2];
+        let account4 = accounts[3];
 
         describe('Empty registry', async () => {
             async_prelude(contract_type);
@@ -87,6 +91,11 @@ function generic_registry_tests(contract_type) {
             test_user_count('should have 2 users', 2);
             test_get_name('should be aware of account1 name', account1, "account1");
             test_get_name('should be aware of account2 name', account2, "account2");
+
+            it('should not accept invalid names', async () => {
+                await expect_throw(instance.register(account3, ''));
+                await expect_throw(instance.register(account4, big_string));
+            })
         });
 
         describe('Removing', async () => {
@@ -109,6 +118,11 @@ function generic_registry_tests(contract_type) {
             change_name(account2, '%%$#');
             test_user_count('should not change user count', 2);
             test_get_name('should change name of affected user', account2, "%%$#");
+
+            it('should not accept invalid names', async () => {
+                await expect_throw(instance.change_name(account3, ''));
+                await expect_throw(instance.change_name(account4, big_string));
+            })
         });
     };       
 }
