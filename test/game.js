@@ -44,19 +44,34 @@ function test_confirmed_count(msg, count) {
     });
 }
 
-function send_vote(from, to, secret) {
+async function send_vote(from, to, secret) {
+    let hash = abi.soliditySHA3(['address', 'bytes32'], [to, secret]).toString();
+    await async_init.instance.vote(hash, {from: from});
+}
+
+function test_send_vote(from, to, secret) {
     it('should not crash on vote', async () => {
-        let hash = abi.soliditySHA3(['address', 'bytes32'], [to, secret]).toString();
-        await async_init.instance.vote(hash, {from: from});
+        await send_vote(from, to, secret);
     });
 }
 
-contract('Game_blind_vote', async (accounts) => {
+async function force_vote_end() {
+    await async_init.instance.force_finish_voting();
+}
+
+function test_force_vote_end() {
+    it('should not crash when forcing voting to end', async () => {
+        await force_vote_end();
+    });
+}
+
+contract.only('Game_blind_vote', async (accounts) => {
     let account1 = accounts[0];
     let account2 = accounts[1];
     let account3 = accounts[2];
     let account4 = accounts[3];
     let owner = account1;
+    let secret = 'x'.repeat(32);
 
     describe('Invalid construcion', async () => {
         it('should deny list of under 2 players', async () => {
@@ -96,13 +111,37 @@ contract('Game_blind_vote', async (accounts) => {
         let addr_list = [account1, account2, account3];
         let from = account1;
         let to = account2;
-        let secret = 'x'.repeat(32);
 
         async_init.new(Game, addr_list, {from: owner});
-        send_vote(from, to, secret);
+        test_send_vote(from, to, secret);
 
         it('should disallow confirming votes', async () => {
             await expect_throw(async_init.instance.confirm(to, secret, {from: from}));
+        });
+
+        it('should disallow non-player from voting', async () => {
+            await expect_throw(send_vote(account4, to, secret));
+        });
+    });
+
+    describe('Forced Voting->Confirming transition', async () => {
+        let addr_list = [account1, account2];
+        async_init.new(Game, addr_list, {from: owner});
+        test_force_vote_end();
+
+        it('should not allow voting afterwards', async () => {
+            await expect_throw(send_vote(addr_list[0], addr_list[1], secret));
+        });
+    });
+
+    describe('Natural Voting->Confirming transition', async () => {
+        let addr_list = [account1, account2];
+        async_init.new(Game, addr_list, {from: owner});
+        test_send_vote(account1, account2, secret);
+        test_send_vote(account2, account2, secret);
+        
+        it('should not allow voting afterwards', async () => {
+            await expect_throw(send_vote(addr_list[0], addr_list[1], secret));
         });
     })
 });
