@@ -30,13 +30,10 @@ function test_get_name(msg, account, name) {
 
 // Handles all the async startup code by wrapping them in a 'it()'
 // Starts by instantiating a contract of a specified type
-// Can take any number of functions returning async functions to be processed
-function async_prelude(contract_type, ...async_generators) {
+// Put at beginning of every describe block
+function async_prelude(contract_type) {
     it('should have initialized properly', async () => {
         instance = await contract_type.new();
-        for (async_gen of async_generators) {
-            await async_gen();
-        }
     });
 }
 
@@ -65,7 +62,6 @@ function generic_registry_tests(contract_type) {
         let account1 = accounts[0];
         let account2 = accounts[1];
 
-
         describe('Empty registry', async () => {
             async_prelude(contract_type);
 
@@ -90,7 +86,7 @@ function generic_registry_tests(contract_type) {
             register_both(account1, account2);
             test_user_count('should have 2 users', 2);
             test_get_name('should be aware of account1 name', account1, "account1");
-            test_get_name('should be aware of account2 names', account2, "account2");
+            test_get_name('should be aware of account2 name', account2, "account2");
         });
 
         describe('Removing', async () => {
@@ -117,5 +113,56 @@ function generic_registry_tests(contract_type) {
     };       
 }
 
+// Generates tests unique to Unique_name_registry
+function unique_name_tests(){
+    let contract_type = UniqueName;
+
+    function test_get_address(msg, name, account) {
+        it(msg, async () => {
+            let addr = await instance.get_address(name);
+            assert.equal(addr, account);
+        });
+    }
+
+    return async (accounts) => {
+        let account1 = accounts[0];
+        let account2 = accounts[1];
+        let account3 = accounts[2];
+
+        describe('Registering name', async () => {
+            async_prelude(contract_type);
+            register_both(account1, account2);
+
+            it('should not allow the same name to be registered again', async () => {
+                await expect_throw(instance.register('account1', account3));
+            });
+            test_get_address('should retrieve account1 address', 'account1', account1);
+            test_get_address('should retrieve account2 address', 'account2', account2);
+        });
+
+        describe('Removing name', async () => {
+            async_prelude(contract_type);
+            register_both(account1, account2);
+            remove_one(account1);
+
+            it('should make address of removed user inaccessible', async () => {
+                await expect_throw(instance.get_address('account1', account1));
+            });
+        });
+
+        describe('Changing name', async () => {
+            async_prelude(contract_type);
+            register_both(account1, account2);
+            change_name(account1, '{}');
+            test_get_address("should let address be indexed via new name", '{}', account1);
+
+            it('should render old name useless', async () => {
+                await expect_throw(instance.get_address('account1', account1));
+            });
+        })
+    }
+}
+
 contract('Name_registry', generic_registry_tests(Name));
-contract('Name_registry', generic_registry_tests(UniqueName));
+contract('Unique_name_registry - Basic cases', generic_registry_tests(UniqueName));
+contract('Unique_name_registry - Uniqueness cases', unique_name_tests());
