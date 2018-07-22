@@ -1,6 +1,7 @@
 const Game = artifacts.require('Game_blind_vote');
 const expect_throw = require('./utils/expect_throw.js')
 const async_init = require('./utils/async_init.js')
+const abi = require('ethereumjs-abi')
 
 function test_player_count(msg, count) {
     it(msg, async () => {
@@ -43,7 +44,14 @@ function test_confirmed_count(msg, count) {
     });
 }
 
-contract.only('Game_blind_vote', async (accounts) => {
+function send_vote(from, to, secret) {
+    it('should not crash on vote', async () => {
+        let hash = abi.soliditySHA3(['address', 'bytes32'], [to, secret]).toString();
+        await async_init.instance.vote(hash, {from: from});
+    });
+}
+
+contract('Game_blind_vote', async (accounts) => {
     let account1 = accounts[0];
     let account2 = accounts[1];
     let account3 = accounts[2];
@@ -83,4 +91,18 @@ contract.only('Game_blind_vote', async (accounts) => {
         test_voted_count('should have no votes', 0);
         test_confirmed_count('should have no confirmed votes', 0);
     });
+
+    describe('Voting state', async () => {
+        let addr_list = [account1, account2, account3];
+        let from = account1;
+        let to = account2;
+        let secret = 'x'.repeat(32);
+
+        async_init.new(Game, addr_list, {from: owner});
+        send_vote(from, to, secret);
+
+        it('should disallow confirming votes', async () => {
+            await expect_throw(async_init.instance.confirm(to, secret, {from: from}));
+        });
+    })
 });

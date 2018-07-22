@@ -50,8 +50,8 @@ contract Game_blind_vote {
         _;
     }
 
-    modifier vote_matches_hash(uint player_index, bytes32 secret){
-        bytes32 hash = keccak256(abi.encodePacked(player_index, secret));
+    modifier vote_matches_hash(address target, bytes32 secret){
+        bytes32 hash = keccak256(abi.encodePacked(target, secret));
         require(
             m_players[msg.sender].vote_hash == hash,
             "Vote confirmation info does not match previously send data"
@@ -108,13 +108,12 @@ contract Game_blind_vote {
     }
 
     // Confirm the user's vote and enact its results
-    function confirm(uint player_index, bytes32 secret) 
+    function confirm(address target, bytes32 secret) 
         public
         is_player 
         is_in_state(State.CONFIRMING) 
-        vote_matches_hash(player_index, secret)
+        vote_matches_hash(target, secret)
     {
-        address target = m_addresses[player_index];
         m_players[target].votes_for++;
         // Make it so the same player can't confirm their vote twice in the same round
         m_players[msg.sender].vote_hash = bytes32(0);
