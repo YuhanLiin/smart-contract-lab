@@ -73,8 +73,8 @@ function generic_registry_tests(contract_type) {
             test_get_name('should be aware of account2 name', account2, "account2");
 
             it('should not accept invalid names', async () => {
-                await expect_throw(async_init.instance.register(account3, ''));
-                await expect_throw(async_init.instance.register(account4, big_string));
+                await expect_throw(async_init.instance.register(''), {from: account3});
+                await expect_throw(async_init.instance.register(big_string), {from: account4});
             })
         });
 
@@ -100,8 +100,10 @@ function generic_registry_tests(contract_type) {
             test_get_name('should change name of affected user', account2, "%%$#");
 
             it('should not accept invalid names', async () => {
-                await expect_throw(async_init.instance.change_name(account3, ''));
-                await expect_throw(async_init.instance.change_name(account4, big_string));
+                await expect_throw(async_init.instance.change_name(''), {from: account3});
+                await expect_throw(
+                    async_init.instance.change_name(big_string), {from: account4}
+                );
             })
         });
     };       
@@ -128,7 +130,7 @@ function unique_name_tests(){
             register_both(account1, account2);
 
             it('should not allow the same name to be registered again', async () => {
-                await expect_throw(async_init.instance.register('account1', account3));
+                await expect_throw(async_init.instance.register('account1', {from: account3}));
             });
             test_get_address('should retrieve account1 address', 'account1', account1);
             test_get_address('should retrieve account2 address', 'account2', account2);
@@ -140,7 +142,7 @@ function unique_name_tests(){
             remove_one(account1);
 
             it('should make address of removed user inaccessible', async () => {
-                await expect_throw(async_init.instance.get_address('account1', account1));
+                await expect_throw(async_init.instance.get_address('account1'));
             });
         });
 
@@ -151,7 +153,7 @@ function unique_name_tests(){
             test_get_address("should let address be indexed via new name", '{}', account1);
 
             it('should render old name useless', async () => {
-                await expect_throw(async_init.instance.get_address('account1', account1));
+                await expect_throw(async_init.instance.get_address('account1'));
             });
         })
     }

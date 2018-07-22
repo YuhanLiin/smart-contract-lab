@@ -96,6 +96,7 @@ contract Unique_name_registry is Name_registry{
     // Remove user from registry along with their name
     function remove()
         public
+        address_is_registered
     {
         string storage name = m_names[msg.sender];
         assert(!is_null(name));
@@ -106,6 +107,7 @@ contract Unique_name_registry is Name_registry{
     // Change name of user. Old name is no longer registered
     function change_name(string name)
         public
+        address_is_registered
         name_not_registered(name)
     {
         string storage old_name = m_names[msg.sender];
