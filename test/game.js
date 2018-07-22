@@ -65,13 +65,24 @@ function test_force_vote_end() {
     });
 }
 
-contract.only('Game_blind_vote', async (accounts) => {
+async function confirm_vote(from, to, secret) {
+    await async_init.instance.confirm(to, secret, {from: from});
+}
+
+function test_confirmed_vote(from, to, secret) {
+    it('should not crash while confirming', async () => {
+        await confirm_vote();
+    });
+}
+
+contract('Game_blind_vote', async (accounts) => {
     let account1 = accounts[0];
     let account2 = accounts[1];
     let account3 = accounts[2];
     let account4 = accounts[3];
     let owner = account1;
     let secret = 'x'.repeat(32);
+    let wrong_secret = 'k'.repeat(32);
 
     describe('Invalid construcion', async () => {
         it('should deny list of under 2 players', async () => {
@@ -134,14 +145,25 @@ contract.only('Game_blind_vote', async (accounts) => {
         });
     });
 
-    describe('Natural Voting->Confirming transition', async () => {
+    describe('Confirming state', async () => {
         let addr_list = [account1, account2];
         async_init.new(Game, addr_list, {from: owner});
+        // Natural transition from voting to confirming
         test_send_vote(account1, account2, secret);
         test_send_vote(account2, account2, secret);
         
-        it('should not allow voting afterwards', async () => {
+        it('should not allow voting after everyone has voted', async () => {
             await expect_throw(send_vote(addr_list[0], addr_list[1], secret));
         });
-    })
+
+        it('should not allow forced voting finish', async () => {
+            await expect_throw(force_vote_end());
+        });
+
+        it('should reject confirmations that mismatch vote hash', async () => {
+            await expect_throw(confirm_vote(account2, account1, secret));
+            await expect_throw(confirm_vote(account2, account2, wrong_secret));
+        });
+    });
+    // TODO other cases
 });
