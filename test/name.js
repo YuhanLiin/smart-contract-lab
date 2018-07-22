@@ -1,15 +1,6 @@
 const Name = artifacts.require('Name_registry');
 const UniqueName = artifacts.require('Unique_name_registry');
-
-async function expect_throw (promise) {
-    try {
-        await promise;
-    }
-    catch (error) {
-        return;
-    }
-    assert.fail();
-}
+const expect_throw = require('./expect_throw.js')
 
 // This is the contract instance re-initialized for every test
 let instance;
