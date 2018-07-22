@@ -31,7 +31,7 @@ contract Game_blind_vote {
 
     // Validate the player list before game even starts
     modifier validate_address_list(address[] addresses){
-        require(addresses.length > 2, "Not enough players");
+        require(addresses.length >= 2, "Not enough players");
         _;
     }
 
@@ -70,6 +70,7 @@ contract Game_blind_vote {
         for (uint i = 0; i < addresses.length; i++){
             address addr = addresses[i];
             // Check if this same address was registered earlier
+            require(addr != address(0), "No null addresses.");
             require(!m_players[addr].is_playing, "All players should have unique addresses.");
 
             m_addresses.push(addr);
